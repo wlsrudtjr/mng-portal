@@ -102,7 +102,11 @@
   <script src="pages/dashboard.js"></script>
   <script src="pages/user-approval.js"></script>
   <script src="pages/notice-manage.js"></script>
+  <script src="pages/user-manage.js"></script>
+  <script src="pages/change-password.js"></script>
 
+
+  
   <script>
     // 화면 라우팅
     function loadPage(pageKey, element) {
@@ -230,6 +234,43 @@
     }
 
     checkAuthStatus();
+
+
+function renderMenu() {
+  const loginUser = JSON.parse(sessionStorage.getItem('loginUser') || '{}');
+  const isAdmin = loginUser.role === 'ADMIN';
+
+  let menuHtml = `
+    <button onclick="loadPage('dashboard', this)">대시보드</button>
+    <button onclick="loadPage('notice-manage', this)">공지사항</button>
+  `;
+
+  // 관리자 전용 메뉴
+  if (isAdmin) {
+    menuHtml += `
+      <button onclick="loadPage('user-approval', this)">가입 승인</button>
+      <button onclick="loadPage('user-manage', this)">사용자 권한/강퇴 관리</button>
+    `;
+  }
+
+  // 공통 마이페이지 메뉴
+  menuHtml += `
+    <button onclick="loadPage('change-password', this)">비밀번호 변경</button>
+    <button onclick="logout()">로그아웃</button>
+  `;
+
+  document.getElementById('sideMenu').innerHTML = menuHtml;
+}
+
+
+
+    // 로그인 함수 내부
+if (userData.status === 'BANNED') {
+  alert('해당 계정은 관리자에 의해 강퇴(이용 정지) 처리되었습니다.');
+  return;
+}
+
+    
   </script>
 </body>
 </html>
