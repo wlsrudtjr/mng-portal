@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>관리자 웹 시스템</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 1. 로그인/회원가입 화면 (로그인 전 표시) -->
+  <div id="auth-section" class="auth-wrap">
+    <div class="auth-card">
+      <h2 id="auth-title">관리자 시스템 로그인</h2>
+      
+      <!-- 로그인 폼 -->
+      <div id="login-box">
+        <input type="text" id="login-id" placeholder="아이디 (기본: admin)">
+        <input type="password" id="login-pw" placeholder="비밀번호 (기본: 1234)">
+        <button id="btn-login" class="btn btn-primary" style="width:100%; margin-top:10px;">로그인</button>
+        <p style="text-align:center; margin-top:15px; font-size:13px;">
+          계정이 없으신가요? <a href="#" id="link-to-register">회원가입 신청</a>
+        </p>
+      </div>
+
+      <!-- 회원가입 신청 폼 -->
+      <div id="register-box" style="display:none;">
+        <input type="text" id="reg-id" placeholder="아이디">
+        <input type="password" id="reg-pw" placeholder="비밀번호">
+        <input type="text" id="reg-name" placeholder="이름">
+        <button id="btn-register" class="btn btn-primary" style="width:100%; margin-top:10px;">가입 신청</button>
+        <p style="text-align:center; margin-top:15px; font-size:13px;">
+          이미 계정이 있으신가요? <a href="#" id="link-to-login">로그인으로 이동</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 메인 관리자 레이아웃 (로그인 후 표시) -->
+  <div id="main-layout" style="display:none; height:100vh;">
+    <!-- 좌측 사이드바 (LNB) -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">Admin System</div>
+      <ul class="menu-list">
+        <li><a href="#" class="menu-item active" onclick="loadPage('dashboard', this)">대시보드</a></li>
+        <li><a href="#" class="menu-item" onclick="loadPage('user-approval', this)">사용자 승인 관리</a></li>
+        <li><a href="#" class="menu-item" onclick="loadPage('notice-manage', this)">공지사항 관리</a></li>
+      </ul>
+    </aside>
+
+    <!-- 우측 본문 영역 -->
+    <div class="main-content">
+      <!-- 상단 헤더 -->
+      <header class="top-header">
+        <div>현재 접속자: <strong id="header-user-info">admin</strong>님</div>
+        <button id="btn-logout" class="btn btn-sm">로그아웃</button>
+      </header>
+
+      <!-- 페이지 동적 렌더링 영역 -->
+      <main id="content-area" class="content-body">
+        <!-- JS로 선택된 페이지가 여기에 삽입됩니다 -->
+      </main>
+    </div>
+  </div>
+
+  <!-- 페이지 모듈 로드 -->
+  <script>window.AppPages = {};</script>
+  <script src="pages/dashboard.js"></script>
+  <script src="pages/user-approval.js"></script>
+  <script src="pages/notice-manage.js"></script>
+
+  <!-- 전체 공통 로직 스크립트 -->
+  <script>
+    // 1. 초기 기본 관리자 계정 셋팅 (admin / 1234)
+    (function initAdminUser() {
+      let users = JSON.parse(localStorage.getItem('app_users') || '[]');
+      if (!users.some(u => u.userId === 'admin')) {
+        users.push({ userId: 'admin', password: '1234', name: '최고관리자', status: 'APPROVED' });
+        localStorage.setItem('app_users', JSON.stringify(users));
+      }
+    })();
+
+    // 2. 화면 전환 라우팅 함수
+    function loadPage(pageKey, element) {
+      if (!window.AppPages[pageKey]) {
+        alert('준비 중이거나 찾을 수 없는 페이지입니다: ' + pageKey);
+        return;
+      }
+      
+      // 메뉴 활성화 스타일 변경
+      if (element) {
+        document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+      }
+
+      const contentArea = document.getElementById('content-area');
+      contentArea.innerHTML = window.AppPages[pageKey].render();
+      if (window.AppPages[pageKey].init) {
+        window.AppPages[pageKey].init();
+      }
+    }
+
+    // 3. 인증 관련 이벤트
+    const authSection = document.getElementById('auth-section');
+    const mainLayout = document.getElementById('main-layout');
+    const loginBox = document.getElementById('login-box');
+    const registerBox = document.getElementById('register-box');
+    const authTitle = document.getElementById('auth-title');
+
+    // 폼 전환
+    document.getElementById('link-to-register').addEventListener('click', (e) => {
+      e.preventDefault();
+      loginBox.style.display = 'none';
+      registerBox.style.display = 'block';
+      authTitle.innerText = '회원가입 신청';
+    });
+
+    document.getElementById('link-to-login').addEventListener('click', (e) => {
+      e.preventDefault();
+      registerBox.style.display = 'none';
+      loginBox.style.display = 'block';
+      authTitle.innerText = '관리자 시스템 로그인';
+    });
+
+    // 회원가입 신청
+    document.getElementById('btn-register').addEventListener('click', () => {
+      const id = document.getElementById('reg-id').value.trim();
+      const pw = document.getElementById('reg-pw').value.trim();
+      const name = document.getElementById('reg-name').value.trim();
+
+      if (!id || !pw || !name) return alert('모든 항목을 입력해주세요.');
+
+      let users = JSON.parse(localStorage.getItem('app_users') || '[]');
+      if (users.some(u => u.userId === id)) return alert('이미 존재하는 아이디입니다.');
+
+      users.push({ userId: id, password: pw, name: name, status: 'PENDING' });
+      localStorage.setItem('app_users', JSON.stringify(users));
+      alert('가입 신청이 완료되었습니다. 관리자 승인 후 로그인 가능합니다.');
+
+      // 초기화 후 로그인 창으로
+      document.getElementById('reg-id').value = '';
+      document.getElementById('reg-pw').value = '';
+      document.getElementById('reg-name').value = '';
+      document.getElementById('link-to-login').click();
+    });
+
+    // 로그인
+    document.getElementById('btn-login').addEventListener('click', () => {
+      const id = document.getElementById('login-id').value.trim();
+      const pw = document.getElementById('login-pw').value.trim();
+
+      const users = JSON.parse(localStorage.getItem('app_users') || '[]');
+      const user = users.find(u => u.userId === id && u.password === pw);
+
+      if (!user) return alert('아이디 또는 비밀번호가 올바르지 않습니다.');
+      if (user.status === 'PENDING') return alert('현재 승인 대기 중인 계정입니다. 관리자 승인을 기다려주세요.');
+      if (user.status === 'REJECTED') return alert('가입이 거절된 계정입니다.');
+
+      // 로그인 성공
+      sessionStorage.setItem('loginUser', JSON.stringify(user));
+      checkAuthStatus();
+    });
+
+    // 로그아웃
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      sessionStorage.removeItem('loginUser');
+      checkAuthStatus();
+    });
+
+    // 로그인 상태 체크
+    function checkAuthStatus() {
+      const loginUser = JSON.parse(sessionStorage.getItem('loginUser'));
+      if (loginUser) {
+        authSection.style.display = 'none';
+        mainLayout.style.display = 'flex';
+        document.getElementById('header-user-info').innerText = `${loginUser.name}(${loginUser.userId})`;
+        loadPage('dashboard'); // 기본 대시보드 렌더링
+      } else {
+        authSection.style.display = 'flex';
+        mainLayout.style.display = 'none';
+      }
+    }
+
+    // 초기 실행
+    checkAuthStatus();
+  </script>
+</body>
+</html>
